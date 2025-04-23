@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# This script sets environment variables so we can talk to Vault.
+#
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo "! This script must be sourced, not executed."
+  exit 1
+fi
+
+OUTPUT="output.txt"
+
+export VAULT_ADDR=$(cat ${OUTPUT} | grep VAULT_ADDR | cut -d= -f2 | cut -d\' -f2)
+export VAULT_CACERT=$(cat ${OUTPUT} | grep VAULT_CACERT | cut -d= -f2 | cut -d\' -f2)
+export CURL_CA_BUNDLE=$VAULT_CACERT
+export VAULT_TOKEN=root
+
+echo "# "
+echo "# VAULT_ADDR: ${VAULT_ADDR}"
+echo "# VAULT_CACERT: ${VAULT_CACERT}"
+echo "# CURL_CA_BUNDLE: ${CURL_CA_BUNDLE}"
+echo "# VAULT_TOKEN: ${VAULT_TOKEN}"
+echo "# "
+

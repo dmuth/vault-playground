@@ -1,4 +1,6 @@
 
+output.txt
+
 # Vim
 *.swp
 *~
