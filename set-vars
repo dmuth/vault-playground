@@ -8,12 +8,18 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   exit 1
 fi
 
+# Change to the directory of this script
+pushd $(dirname $BASH_SOURCE[0]) > /dev/null
+
 OUTPUT="output.txt"
 
 export VAULT_ADDR=$(cat ${OUTPUT} | grep VAULT_ADDR | cut -d= -f2 | cut -d\' -f2)
 export VAULT_CACERT=$(cat ${OUTPUT} | grep VAULT_CACERT | cut -d= -f2 | cut -d\' -f2)
 export CURL_CA_BUNDLE=$VAULT_CACERT
 export VAULT_TOKEN=root
+
+# Return to our starting directory
+popd > /dev/null
 
 echo "# "
 echo "# VAULT_ADDR: ${VAULT_ADDR}"
