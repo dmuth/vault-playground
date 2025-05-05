@@ -1,5 +1,5 @@
 
-path "noop/policy-team-team1" {
+path "noop/policy-group-team1" {
   capabilities = ["list"]
 }
 
