@@ -94,6 +94,9 @@ function create_groups() {
   vault write identity/group name="team2" type="internal" policies="policy-group-team2"
   vault write identity/group name="ops" type="internal" policies="policy-group-ops"
 
+  ENTITY_ID_ALICE=$(vault read identity/entity/name/alice-entity -format=json | jq -r .data.id)
+  ENTITY_ID_BOB=$(vault read identity/entity/name/bob-entity -format=json | jq -r .data.id)
+
   ID_TEAM_1=$(vault read identity/group/name/team1 -format=json | jq -r .data.id)
   ID_TEAM_2=$(vault read identity/group/name/team2 -format=json | jq -r .data.id)
   ID_OPS=$(vault read identity/group/name/ops -format=json | jq -r .data.id)
@@ -105,21 +108,52 @@ function create_groups() {
 
 
 function create_secrets() {
-true
 
-#team1/{web,db}  
-#team2/{web,db}  
+  echo "# Inserting secrets..."
+  vault kv put -format=json secret/entities/alice/web username="webuser" password="webpass" | jq -r .request_id
+  vault kv put -format=json secret/entities/bob/web username="bobwebuser" password="webpass"| jq -r .request_id
+  vault kv put -format=json secret/groups/team1/web username="webuser" password="webpass" | jq -r .request_id
+  vault kv put -format=json secret/groups/team1/db username="dbuser" password="dbpass" | jq -r .request_id
+  vault kv put -format=json secret/groups/team2/web username="webuser2" password="webpass2" | jq -r .request_id
+  vault kv put -format=json secret/groups/team2/db username="dbuser2" password="dbpass2" | jq -r .request_id
+
+}
+
+
+function read_secrets() {
+
+  #
+  # We can't get tokens for entities, since they're aliases.  
+  # We can get tokens for the user, though
+  #
+  TOKEN=$(vault login -method=userpass username=alice password=alicepass -format=json | jq -r .auth.client_token)
+
+  POLICIES=$(VAULT_TOKEN=${TOKEN} vault token lookup -format=json | jq -r -c .data.identity_policies)
+  echo "# Policies for entity alice: ${POLICIES}"
+
+  VAULT_TOKEN=${TOKEN} vault kv list -format=json secret/entities/alice | jq -c
+  VAULT_TOKEN=${TOKEN} vault kv list -format=json secret/entities | jq -c
+  VAULT_TOKEN=${TOKEN} vault kv list -format=json secret/ | jq -c
+  VAULT_TOKEN=${TOKEN} vault kv get -format=json secret/entities/alice/web | jq -rc .data.data
+  #VAULT_TOKEN=${TOKEN} vault kv list secret/entities/bob # This will fail
+
+  VAULT_TOKEN=${TOKEN} vault kv list -format=json secret/groups/team1 | jq -c
+  VAULT_TOKEN=${TOKEN} vault kv list -format=json secret/groups | jq -c
+  VAULT_TOKEN=${TOKEN} vault kv get -format=json secret/groups/team1/db | jq -rc .data.data
+
+  echo "# Reading secrets..."
 
 }
 
 
 function main() {
 #  create_userpass_auth
-#  create_policies
+  create_policies
 #  create_users
-  create_entities
-  create_groups
-  create_secrets
+#  create_entities
+#  create_groups
+#  create_secrets
+  read_secrets
 }
 
 
