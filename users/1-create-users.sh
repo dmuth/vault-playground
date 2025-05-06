@@ -26,6 +26,7 @@ function create_policies() {
   vault policy write policy-entity-bob policy-entity-bob.hcl
   vault policy write policy-group-team1 policy-group-team1.hcl
   vault policy write policy-group-team2 policy-group-team2.hcl
+  vault policy write policy-group-ops policy-group-ops.hcl
 
 }
 
@@ -58,7 +59,9 @@ function create_entities() {
   vault read identity/entity/name/alice-entity -format=json | jq -c .data.policies
 
   ENTITY_ID_ALICE=$(vault read identity/entity/name/alice-entity -format=json | jq -r .data.id)
+  echo "# Entity ID for Alice: ${ENTITY_ID_ALICE}"
   ENTITY_ID_BOB=$(vault read identity/entity/name/bob-entity -format=json | jq -r .data.id)
+  echo "# Entity ID for Bob: ${ENTITY_ID_BOB}"
 
   ACCESSOR=$(vault auth list -format=json | jq -r '."userpass/".accessor')
 
@@ -86,19 +89,37 @@ function create_entities() {
 
 
 function create_groups() {
-true
-# Create groups
 
-# Get a token and do a token lookup here
+  vault write identity/group name="team1" type="internal" policies="policy-group-team1"
+  vault write identity/group name="team2" type="internal" policies="policy-group-team2"
+  vault write identity/group name="ops" type="internal" policies="policy-group-ops"
+
+  ID_TEAM_1=$(vault read identity/group/name/team1 -format=json | jq -r .data.id)
+  ID_TEAM_2=$(vault read identity/group/name/team2 -format=json | jq -r .data.id)
+  ID_OPS=$(vault read identity/group/name/ops -format=json | jq -r .data.id)
+
+  vault write identity/group/id/${ID_TEAM_1} member_entity_ids=${ENTITY_ID_ALICE}
+  vault write identity/group/id/${ID_TEAM_2} member_entity_ids=${ENTITY_ID_BOB}
+
+}
+
+
+function create_secrets() {
+true
+
+#team1/{web,db}  
+#team2/{web,db}  
+
 }
 
 
 function main() {
-  create_userpass_auth
-  create_policies
-  create_users
+#  create_userpass_auth
+#  create_policies
+#  create_users
   create_entities
   create_groups
+  create_secrets
 }
 
 
