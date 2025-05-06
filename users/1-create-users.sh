@@ -42,6 +42,7 @@ function create_users() {
   echo "# "
   vault write auth/userpass/users/alice password="alicepass" policies="policy-alice"
   vault write auth/userpass/users/bob   password="bobpass"     policies="policy-bob"
+  vault write auth/userpass/users/ops   password="opspass"
 
   TOKEN=$(vault login -method=userpass username=alice password=alicepass -format=json | jq -r .auth.client_token)
   echo "# "
@@ -65,6 +66,8 @@ function create_entities() {
     policies="policy-entity-bob" \
     metadata="team=team2"
 
+  vault write identity/entity name="ops-entity" 
+
   echo "# "
   echo "# Policies on alice-entity: "
   echo "# "
@@ -78,6 +81,7 @@ function create_entities() {
   echo "# "
   echo "# Entity ID for Bob: ${ENTITY_ID_BOB}"
   echo "# "
+  ENTITY_ID_OPS=$(vault read identity/entity/name/ops-entity -format=json | jq -r .data.id)
 
   ACCESSOR=$(vault auth list -format=json | jq -r '."userpass/".accessor')
 
@@ -94,8 +98,14 @@ function create_entities() {
     canonical_id="${ENTITY_ID_BOB}" \
     mount_accessor="${ACCESSOR}"
 
+  vault write identity/entity-alias \
+    name="ops" \
+    canonical_id="${ENTITY_ID_OPS}" \
+    mount_accessor="${ACCESSOR}"
+
   vault write identity/entity/name/alice-entity policies="policy-entity-alice"
   vault write identity/entity/name/bob-entity policies="policy-entity-bob"
+  vault write identity/entity/name/ops-entity policies="policy-entity-ops"
   #vault read identity/entity/name/alice-entity 
 
   TOKEN=$(vault login -method=userpass username=alice password=alicepass -format=json | jq -r .auth.client_token)
@@ -119,6 +129,7 @@ function create_groups() {
 
   ENTITY_ID_ALICE=$(vault read identity/entity/name/alice-entity -format=json | jq -r .data.id)
   ENTITY_ID_BOB=$(vault read identity/entity/name/bob-entity -format=json | jq -r .data.id)
+  ENTITY_ID_OPS=$(vault read identity/entity/name/ops-entity -format=json | jq -r .data.id)
 
   ID_TEAM_1=$(vault read identity/group/name/team1 -format=json | jq -r .data.id)
   ID_TEAM_2=$(vault read identity/group/name/team2 -format=json | jq -r .data.id)
@@ -126,6 +137,7 @@ function create_groups() {
 
   vault write identity/group/id/${ID_TEAM_1} member_entity_ids=${ENTITY_ID_ALICE}
   vault write identity/group/id/${ID_TEAM_2} member_entity_ids=${ENTITY_ID_BOB}
+  vault write identity/group/id/${ID_OPS} member_entity_ids=${ENTITY_ID_OPS}
 
 }
 
@@ -187,6 +199,20 @@ function use_secrets_as_user() {
 }
 
 
+function use_secrets_as_ops() {
+
+  echo "# "
+  echo "# Listing and reading secrets as the Ops user"
+  echo "# "
+  TOKEN=$(vault login -method=userpass username=ops password=opspass -format=json | jq -r .auth.client_token)
+
+  VAULT_TOKEN=${TOKEN} vault kv list -format=json secret/groups/team1 | jq -c
+  VAULT_TOKEN=${TOKEN} vault kv get -format=json secret/groups/team1/db | jq -rc .data.data
+  VAULT_TOKEN=${TOKEN} vault kv list -format=json secret/groups/team2 | jq -c
+
+}
+
+
 function main() {
   create_userpass_auth
   create_policies
@@ -195,6 +221,7 @@ function main() {
   create_groups
   create_secrets
   use_secrets_as_user
+  use_secrets_as_ops
 }
 
 
