@@ -12,11 +12,11 @@ path "secret/metadata/entities/" {
 }
 
 path "secret/data/entities/alice/*" {
-  capabilities = ["read"]
+  capabilities = ["create", "read", "update", "delete"]
 }
 
-path "secret/metadata/entities/alice/" {
-  capabilities = ["list"]
+path "secret/metadata/entities/alice/*" {
+  capabilities = ["list", "delete"]
 }
 
 
